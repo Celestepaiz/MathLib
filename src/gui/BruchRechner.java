@@ -8,16 +8,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import math.Bruch;
+import math.Fraction;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 public class BruchRechner extends JFrame{
+	
+	private static final long serialVersionUID = 1L;
 	
 	private JTextField inputField;
 	private JTextField outputField;
@@ -64,12 +65,9 @@ public class BruchRechner extends JFrame{
 			}
 			counter++;
 		}
-		Bruch result;
+		Fraction result;
 		try{
-			result = Bruch.parseBruch(equation.get(0));
-			if(cancelCheckBox.isSelected()){
-				result.automatischKuerzen(true);
-			}
+			result = Fraction.parseFraction(equation.get(0));
 		}
 		catch(IllegalArgumentException e){
 			outputField.setText(e.getMessage());
@@ -79,27 +77,60 @@ public class BruchRechner extends JFrame{
 			if(i != equation.size()-1){
 				switch(equation.get(i)){
 				case "*":
-					Bruch multiplicator;
+					Fraction multiplicator;
 					try{
-						multiplicator = Bruch.parseBruch(equation.get(i+1));
+						multiplicator = Fraction.parseFraction(equation.get(i+1));
 					}
 					catch(IllegalArgumentException e){
 						outputField.setText(e.getMessage());
 						return;
 					}
-					result.multiplizieren(multiplicator);
+					result = result.multiply(multiplicator);
+					break;
 				case "+":
-					Bruch adder;
+					Fraction adder;
 					try{
-						adder = Bruch.parseBruch(equation.get(i+1));
+						adder = Fraction.parseFraction(equation.get(i+1));
 					}
 					catch(IllegalArgumentException e){
 						outputField.setText(e.getMessage());
 						return;
 					}
-					result.addieren(adder);
+					result = result.add(adder);
+					break;
+				case "-":
+					Fraction subtractor;
+					try{
+						subtractor = Fraction.parseFraction(equation.get(i+1));
+					}
+					catch(IllegalArgumentException e){
+						outputField.setText(e.getMessage());
+						return;
+					}
+					result = result.subtract(subtractor);
+					break;
+				case "/":
+					Fraction divider;
+					try{
+						divider = Fraction.parseFraction(equation.get(i+1));
+					}
+					catch(IllegalArgumentException e){
+						outputField.setText(e.getMessage());
+						return;
+					}
+					try{
+						result = result.divide(divider);
+					}
+					catch(IllegalArgumentException e){
+						outputField.setText(e.getMessage());
+						return;
+					}
+					break;
 				}
 			}
+		}
+		if(cancelCheckBox.isSelected()){
+			result.reduce();
 		}
 		outputField.setText(result.toString());
 	}

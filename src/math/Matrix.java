@@ -11,19 +11,19 @@ public class Matrix {
 	 */
 	private int spalten;
 	private int zeilen;
-	private Bruch[][] inhalt;
+	private Fraction[][] inhalt;
 	
 	public Matrix(int n, int k){
 		spalten = n;
 		zeilen = k;
-		inhalt = new Bruch[n][k];
+		inhalt = new Fraction[n][k];
 		mitNullFüllen();
 	}
 	
 	public Matrix(int n, int k, Vector<Integer> inhalt){
 		zeilen = n;
 		spalten = k;
-		this.inhalt = new Bruch[n][k];
+		this.inhalt = new Fraction[n][k];
 		if(inhalt.size() != n*k){
 			mitNullFüllen();
 		}
@@ -31,7 +31,7 @@ public class Matrix {
 			int insertIndex = 0;
 			for(int i = 0 ; i < zeilen; i++){
 				for(int t = 0; t < spalten; t++){
-					this.inhalt[i][t] = new Bruch(inhalt.get(insertIndex));
+					this.inhalt[i][t] = new Fraction(inhalt.get(insertIndex));
 					insertIndex++;
 				}
 			}
@@ -41,7 +41,7 @@ public class Matrix {
 	public Matrix(int n, int k, int[] inhalt){
 		zeilen = n;
 		spalten = k;
-		this.inhalt = new Bruch[n][k];
+		this.inhalt = new Fraction[n][k];
 		if(inhalt.length != n*k){
 			mitNullFüllen();
 		}
@@ -49,17 +49,17 @@ public class Matrix {
 			int insertIndex = 0;
 			for(int i = 0 ; i < zeilen; i++){
 				for(int t = 0; t < spalten; t++){
-					this.inhalt[i][t] = new Bruch(inhalt[insertIndex]);
+					this.inhalt[i][t] = new Fraction(inhalt[insertIndex]);
 					insertIndex++;
 				}
 			}
 		}
 	}
 	
-	public Matrix(int n, int k, Bruch[] inhalt){
+	public Matrix(int n, int k, Fraction[] inhalt){
 		zeilen = n;
 		spalten = k;
-		this.inhalt = new Bruch[n][k];
+		this.inhalt = new Fraction[n][k];
 		if(inhalt.length != n*k){
 			mitNullFüllen();
 		}
@@ -74,7 +74,7 @@ public class Matrix {
 		}
 	}
 	
-	public Matrix(Bruch[][] inhalt){
+	public Matrix(Fraction[][] inhalt){
 		this.zeilen = inhalt.length;
 		this.spalten = inhalt[1].length;
 		this.inhalt = inhalt;
@@ -88,7 +88,7 @@ public class Matrix {
 		return zeilen;
 	}
 	
-	public Bruch[][] getInhalt(){
+	public Fraction[][] getInhalt(){
 		return inhalt;
 	}
 	
@@ -98,7 +98,7 @@ public class Matrix {
 	public void mitNullFüllen(){
 		for(int i = 0; i < zeilen; i++){
 			for(int t = 0; t < spalten; t++){
-				this.inhalt[i][t] = new Bruch(0);
+				this.inhalt[i][t] = new Fraction(0);
 			}
 		}
 	}
@@ -107,7 +107,7 @@ public class Matrix {
 		if(spalten == andereMatrix.spalten && zeilen == andereMatrix.zeilen){
 			for(int i = 0; i < zeilen; i++){
 				for(int t = 0; t < spalten; t++){
-					this.inhalt[i][t].addieren(andereMatrix.inhalt[i][t]); ;
+					this.inhalt[i][t].add(andereMatrix.inhalt[i][t]); ;
 				}
 			}
 		}
@@ -120,7 +120,7 @@ public class Matrix {
 		if(spalten == andereMatrix.spalten && zeilen == andereMatrix.zeilen){
 			for(int i = 0; i < zeilen; i++){
 				for(int t = 0; t < spalten; t++){
-					this.inhalt[i][t].subtrahieren(andereMatrix.inhalt[i][t]);
+					this.inhalt[i][t].subtract(andereMatrix.inhalt[i][t]);
 				}
 			}
 		}
@@ -131,16 +131,16 @@ public class Matrix {
 	
 	public Matrix multiplizieren(Matrix andereMatrix){
 		if(spalten == andereMatrix.zeilen){
-			Bruch[][] resultMatrix = new Bruch[zeilen][andereMatrix.spalten];
+			Fraction[][] resultMatrix = new Fraction[zeilen][andereMatrix.spalten];
 			for(int i = 0; i < zeilen; i++){
 				for(int j = 0; j < andereMatrix.spalten; j++){
-					Bruch result = new Bruch(0);
+					Fraction result = new Fraction(0);
 					for(int z = 0; z < andereMatrix.zeilen; z++){
-						Bruch multi = inhalt[i][z].copy();
+						Fraction multi = inhalt[i][z].clone();
 						//System.out.println("Multipliziere " + i + "," + z + "| " + multi + " mit " + z + "," + j + "| " + andereMatrix.inhalt[z][j]);
-						multi.multiplizieren(andereMatrix.inhalt[z][j]);
+						multi.multiply(andereMatrix.inhalt[z][j]);
 						//System.out.println("Addiere " + multi + " auf " + result);
-						result.addieren(multi);
+						result.add(multi);
 					}
 					resultMatrix[i][j] = result;
 					//System.out.println("Schreibe " + result + " in " + i + "," + j);

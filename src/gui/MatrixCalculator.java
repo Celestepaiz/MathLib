@@ -10,7 +10,7 @@ import java.util.Scanner;
 import java.util.Vector;
 
 import math.Matrix;
-import math.Bruch;
+import math.Fraction;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
