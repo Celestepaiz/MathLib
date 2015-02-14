@@ -1,10 +1,10 @@
 package math;
 
-public class Fraction implements Comparable<Fraction>{
-	private long numerator;
+public class Fraction implements Comparable<Fraction>, Cloneable{
+	private long numerator; //Positive or negative
 	private long denominator;
-	private boolean negative = false;
 	private boolean autoReduce = false;
+	private boolean modify = false; //Determines if the fraction should be modified or return results
 
 	public Fraction(long numerator, long denominator) {
 		this.numerator = numerator;
@@ -77,7 +77,7 @@ public class Fraction implements Comparable<Fraction>{
 	}
 	
 	public long getNumerator(){
-		return numerator*makeNegative();
+		return numerator;
 	}
 
 	public long getDenominator() {
@@ -97,25 +97,7 @@ public class Fraction implements Comparable<Fraction>{
 	}
 
 	public boolean isNegative() {
-		return negative;
-	}
-	
-	private String returnNegative(){
-		if(negative){
-			return "-";
-		}
-		else{
-			return "";
-		}
-	}
-	
-	private int makeNegative(){
-		if(negative){
-			return -1;
-		}
-		else{
-			return 1;
-		}
+		return numerator < 0;
 	}
 
 	/**
@@ -123,14 +105,6 @@ public class Fraction implements Comparable<Fraction>{
 	 * die Werte dementsprechend. Kürzt den Bruch sofern aktiviert.
 	 */
 	private void updateState() {
-		if(numerator < 0){
-			negative = true;
-			numerator *= -1;
-		}
-		else{
-			negative = false;
-		}
-		
 		if(isZero()){
 			numerator = 0;
 			denominator = 0;
@@ -166,6 +140,11 @@ public class Fraction implements Comparable<Fraction>{
 			resultNumerator = getNumerator() + anotherFraction.getNumerator();
 			resultDenominator = getDenominator();
 		}
+		if(this.modify){
+			this.numerator = resultNumerator;
+			this.denominator = resultDenominator;
+			modify = false;
+		}
 		return new Fraction(resultNumerator, resultDenominator);
 	}
 	
@@ -185,17 +164,31 @@ public class Fraction implements Comparable<Fraction>{
 			resultNumerator = getNumerator() - anotherFraction.getNumerator();
 			resultDenominator = getDenominator();
 		}
+		if(this.modify){
+			this.numerator = resultNumerator;
+			this.denominator = resultDenominator;
+			modify = false;
+		}
 		return new Fraction(resultNumerator, resultDenominator);
 	}
 
 	public Fraction multiply(Fraction anotherFraction) {
 		long resultNumerator = getNumerator() * anotherFraction.getNumerator();
 		long resultDenominator = getDenominator() * anotherFraction.getDenominator();
+		if(this.modify){
+			this.numerator = resultNumerator;
+			this.denominator = resultDenominator;
+			modify = false;
+		}
 		return new Fraction(resultNumerator, resultDenominator);
 	}
 	
-	public Fraction multiply(long skalar) {
-		long resultNumerator = getNumerator() * skalar;
+	public Fraction multiply(long scalar) {
+		long resultNumerator = getNumerator() * scalar;
+		if(this.modify){
+			this.numerator = resultNumerator;
+			modify = false;
+		}
 		return new Fraction(resultNumerator, getDenominator());
 	}
 	
@@ -203,28 +196,41 @@ public class Fraction implements Comparable<Fraction>{
 		if(anotherFraction.isZero()){
 			throw new IllegalArgumentException("Teilung durch 0 ist unzulässig!");
 		}
-		long resultNumerator = getNumerator() * anotherFraction.getDenominator() * anotherFraction.makeNegative();
+		long resultNumerator = getNumerator() * anotherFraction.getDenominator();
 		long resultDenominator = getDenominator() * anotherFraction.getNumerator();
+		if(this.modify){
+			this.numerator = resultNumerator;
+			this.denominator = resultDenominator;
+			modify = false;
+		}
 		return new Fraction(resultNumerator,resultDenominator);
 	}
 	
 	/**
 	 * Dividiert den Bruch durch den gegeben Skalar,
 	 * ist der skalar 0 wird nichts berechnet
-	 * @param skalar
+	 * @param scalar
 	 */
-	public Fraction divide(long skalar) throws IllegalArgumentException{
-		if(skalar == 0){
+	public Fraction divide(long scalar) throws IllegalArgumentException{
+		if(scalar == 0){
 			throw new IllegalArgumentException("Teilung durch 0 ist unzulässig!");
 		}
 		long resultNumerator = this.numerator;
-		if(skalar < 0){
+		if(scalar < 0){
 			resultNumerator *= -1;
 		}
-		long resultDenominator = getDenominator() * skalar;
+		long resultDenominator = getDenominator() * scalar;
+		if(this.modify){
+			this.numerator = resultNumerator;
+			this.denominator = resultDenominator;
+			modify = false;
+		}
 		return new Fraction(resultNumerator,resultDenominator);
 	}
 	
+	/**
+	 * @return The exact value of a fraction
+	 */
 	public double getValue(){
 		return this.numerator/(double)this.denominator;
 	}
@@ -240,7 +246,7 @@ public class Fraction implements Comparable<Fraction>{
 			return new Fraction(Long.parseLong(input));
 		}
 		else{
-			throw new IllegalArgumentException("Muss im Format Zähler/Nenner(!=0) sein!");
+			throw new IllegalArgumentException("Ungültiger Wert");
 		}
 
 	}
@@ -250,20 +256,27 @@ public class Fraction implements Comparable<Fraction>{
 		return new Fraction(getNumerator(), denominator, autoReduce);
 	}
 	
+	/**
+	 * Make the fraction change instead of returning the result
+	 * @return Same object with modify enabled
+	 */
+	public Fraction modify(){
+		modify = true;
+		return this;
+	}
+	
 	@Override
 	public String toString() {
 		if (numerator == 0) {
 			return "0";
 		}
 		else if(numerator == denominator){
-			return returnNegative() + "1";
+			return (isNegative()? "-": "") + "1";
 		}
-		else if(numerator > denominator){
-			if(numerator % denominator == 0){
-				return returnNegative() + numerator/denominator;
-			}
+		else if(numerator % denominator == 0){
+			return "" + (getNumerator()/denominator);
 		}
-		return returnNegative() + numerator + "/" + denominator;
+		return getNumerator() + "/" + denominator;
 	}
 
 	@Override

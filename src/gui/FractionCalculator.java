@@ -16,7 +16,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-public class BruchRechner extends JFrame{
+public class FractionCalculator extends JFrame{
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -25,7 +25,7 @@ public class BruchRechner extends JFrame{
 	private JButton calculateButton;
 	private JCheckBox cancelCheckBox;
 	
-	public BruchRechner(){
+	public FractionCalculator(){
 		super("Bruchrechner");
 		JPanel inputPanel = new JPanel(new GridLayout(3,1));
 		inputField = new JTextField();
@@ -136,7 +136,7 @@ public class BruchRechner extends JFrame{
 	}
 	
 	public static void main(String[] args) {
-		BruchRechner rechner = new BruchRechner();
+		FractionCalculator rechner = new FractionCalculator();
 		rechner.pack();
 		rechner.setLocationRelativeTo(null);
 		rechner.setSize(200,200);

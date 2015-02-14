@@ -1,67 +1,94 @@
 package gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.util.Scanner;
 import java.util.Vector;
 
 import math.Matrix;
 import math.Fraction;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
+import javax.swing.border.TitledBorder;
 
 public class MatrixCalculator extends JFrame {
 
 	private static final long serialVersionUID = -5111396894528359139L;
 	
-	JTextArea matrix1Input;
+	JTextArea matrixAInput;
 	JComboBox<String> methodChooser;
-	JTextArea matrix2Input;
+	JTextArea matrixBInput;
 	JTextArea matrixResult;
 	JButton calculateButton;
+	JLabel matrixAErrorLabel;
 	
 	public MatrixCalculator(){
 		super("Matrix Rechner");
 		setLayout(new BorderLayout());
 		JPanel inputPanel = new JPanel(new FlowLayout());
-		matrix1Input = new JTextArea(10,20);
-		matrix1Input.addKeyListener(new KeyListener() {
+		JPanel matrixAPanel = new JPanel(new BorderLayout());
+		JLabel matrixALabel = new JLabel("Matrix A:");
+		matrixAPanel.add(matrixALabel, BorderLayout.NORTH);
+		matrixAErrorLabel = new JLabel("");
+		matrixAPanel.add(matrixAErrorLabel, BorderLayout.SOUTH);
+		matrixAInput = new JTextArea(10,20);
+		matrixAInput.addFocusListener(new FocusListener() {
 			
 			@Override
-			public void keyTyped(KeyEvent e) {
-				if(e.getKeyChar()==KeyEvent.VK_ENTER){
-					//TODO
-					//getCollumnCount();
+			public void focusLost(FocusEvent e) {
+				try{
+					readMatrix(matrixAInput.getText());
 				}
-			}
-		
-			@Override
-			public void keyReleased(KeyEvent arg0) {
-				// TODO Auto-generated method stub
+				catch(IllegalArgumentException ex){
+					matrixAInput.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+					matrixAErrorLabel.setText(ex.getMessage());
+				}
 				
 			}
 			
 			@Override
-			public void keyPressed(KeyEvent arg0) {
-				// TODO Auto-generated method stub
+			public void focusGained(FocusEvent e) {
+				matrixAInput.setBorder(null);
+				matrixAErrorLabel.setText("");
+			}
+		});
+		matrixAPanel.add(matrixAInput, BorderLayout.CENTER);
+		String[] operations = {"+","-","*"};
+		methodChooser = new JComboBox<String>(operations);
+		matrixBInput = new JTextArea(10, 20);
+		matrixBInput.addFocusListener(new FocusListener() {
+			
+			@Override
+			public void focusLost(FocusEvent e) {
+				try{
+					readMatrix(matrixBInput.getText());
+				}
+				catch(IllegalArgumentException ex){
+					matrixBInput.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.RED, 2), ex.getMessage(), TitledBorder.LEFT, TitledBorder.BELOW_BOTTOM));
+				}
+			}
+			
+			@Override
+			public void focusGained(FocusEvent e) {
+				matrixBInput.setBorder(null);
 				
 			}
 		});
-		String[] operations = {"+","-","*"};
-		methodChooser = new JComboBox<String>(operations);
-		matrix2Input = new JTextArea(10, 20);
-		inputPanel.add(matrix1Input);
+		inputPanel.add(matrixAPanel);
 		inputPanel.add(methodChooser);
-		inputPanel.add(matrix2Input);
+		inputPanel.add(matrixBInput);
 		add(inputPanel, BorderLayout.CENTER);
 		JPanel resultPanel = new JPanel(new BorderLayout());
 		calculateButton = new JButton("Berechnen!");
@@ -75,42 +102,62 @@ public class MatrixCalculator extends JFrame {
 		});
 		resultPanel.add(calculateButton, BorderLayout.NORTH);
 		matrixResult = new JTextArea(10,20);
+		matrixResult.setTabSize(1);
 		resultPanel.add(matrixResult, BorderLayout.CENTER);
 		add(resultPanel, BorderLayout.SOUTH);
 	}
 	
-	public void calculateResultMatrix(){
-		Scanner inputReader = new Scanner(matrix1Input.getText());
-		Vector<Integer> matrix1Values = new Vector<Integer>();
-		while(inputReader.hasNext()){
-			matrix1Values.add(Integer.parseInt(inputReader.next()));
+	public Matrix readMatrix(String input) throws IllegalArgumentException{
+		Scanner inputReader = new Scanner(input);
+		int rowCount = 0;
+		int columnCount = 0;
+		Vector<Fraction> matrixValues = new Vector<Fraction>();
+		while(inputReader.hasNextLine()){
+			rowCount++;
+			int currentColumnCount = 0;
+			Scanner lineReader = new Scanner(inputReader.nextLine());
+			while(lineReader.hasNext()){
+				currentColumnCount++;
+				matrixValues.add(Fraction.parseFraction(lineReader.next()));
+			}
+			if(columnCount == 0){
+				columnCount = currentColumnCount;
+			}
+			else if(currentColumnCount != columnCount && currentColumnCount != 0){
+				lineReader.close();
+				throw new IllegalArgumentException("Zeile " + rowCount + " hat " + (currentColumnCount < columnCount? "zu wenig ": "zu viele ") + "Spalten");
+			}
+			lineReader.close();
 		}
 		inputReader.close();
-		int matrix1Rows = matrix1Input.getLineCount();
-		int matrix1Collums = matrix1Values.size() / matrix1Rows;
+		return new Matrix(rowCount, columnCount, matrixValues);
+	}
 	
-		inputReader = new Scanner(matrix2Input.getText());
-		Vector<Integer> matrix2Values = new Vector<Integer>();
-		while(inputReader.hasNext()){
-			matrix2Values.add(Integer.parseInt(inputReader.next()));
+	public void calculateResultMatrix(){
+		try{
+			Matrix matrixA = readMatrix(matrixAInput.getText());
+			Matrix matrixB = readMatrix(matrixBInput.getText());
+			Matrix result = null;
+			switch((String)methodChooser.getSelectedItem()){
+			case "+":
+				result = matrixA.add(matrixB);
+				break;
+			case "-":
+				result = matrixA.subtract(matrixB);
+				break;
+			case "*":
+				result = matrixA.multiply(matrixB);
+				break;
+			}
+			if(result == null){
+				matrixResult.setText("Unbekannte Operation!");
+			}
+			else{
+				matrixResult.setText(result.toString());
+			}
 		}
-		inputReader.close();
-		int matrix2Rows = matrix2Input.getLineCount();
-		int matrix2Collums = matrix2Values.size() / matrix1Rows;
-		Matrix a = new Matrix(matrix1Rows, matrix1Collums, matrix1Values);
-		Matrix b = new Matrix(matrix2Rows, matrix2Collums, matrix2Values);
-		switch((String)methodChooser.getSelectedItem()){
-		case "+":
-			a.addieren(b);
-			matrixResult.setText(a.toString());
-			break;
-		case "-":
-			a.subtrahieren(b);
-			matrixResult.setText(a.toString());
-			break;
-		case "*":
-			matrixResult.setText(a.multiplizieren(b).toString());
-			break;
+		catch(IllegalArgumentException e){
+			matrixResult.setText(e.getMessage());
 		}
 	}
 	
