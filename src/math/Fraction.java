@@ -47,6 +47,22 @@ public class Fraction implements Comparable<Fraction>, Cloneable{
 		updateState();
 	}
 
+	/**
+	 * Calculates the greates common divisor of a and b
+	 * @param a
+	 * @param b
+	 * @return
+	 */
+	public static long gcd(long a, long b){
+		while (b != 0) {
+			if (a > b) {
+				a = a - b;
+			} else {
+				b = b - a;
+			}
+		}
+		return a;
+	}
 	//Greates common divisor
 	private long ggTBerechnen() {
 		long a1 = numerator;
@@ -98,6 +114,27 @@ public class Fraction implements Comparable<Fraction>, Cloneable{
 
 	public boolean isNegative() {
 		return numerator < 0;
+	}
+	
+	/**
+	 * Checks if the fraction is an integer
+	 * @return true or false
+	 */
+	public boolean isInteger(){
+		return this.numerator % this.denominator == 0;
+	}
+	
+	/**
+	 * Switches numerator and denominator
+	 */
+	public void invert(){
+		long oldDenominator = this.denominator;
+		this.denominator = this.numerator;
+		if(isNegative()){
+			oldDenominator *= -1;
+		}
+		this.numerator = oldDenominator;
+		updateState();
 	}
 
 	/**
@@ -281,9 +318,6 @@ public class Fraction implements Comparable<Fraction>, Cloneable{
 
 	@Override
 	public int compareTo(Fraction anotherFraction) {
-		if(this.numerator == anotherFraction.getNumerator() && this.denominator == anotherFraction.getDenominator()){
-			return 0;
-		}
-		return 1;
+		return Double.compare(this.getValue(), anotherFraction.getValue());
 	}
 }

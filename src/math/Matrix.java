@@ -1,7 +1,8 @@
 package math;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.Vector;
 
 public class Matrix implements Comparable<Matrix>, Cloneable{
@@ -248,6 +249,13 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 		}
 	}
 	
+	/**
+	 * Subtracts a multiple of row from anotherRow
+	 * @param row
+	 * @param scalar
+	 * @param anotherRow
+	 * @throws IllegalArgumentException
+	 */
 	public void subtractMultipleOfRow(int row, int scalar, int anotherRow) throws IllegalArgumentException{
 		if(rowInRange(row) && rowInRange(anotherRow)){
 			row--;
@@ -256,6 +264,19 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 			for(int i = 0; i < this.columns; i++){
 				rowValues.add(this.content[row][i]);
 			}
+			for(int j = 0; j < this.columns; j++){
+				this.content[anotherRow][j].modify().subtract(rowValues.get(j).multiply(scalar));
+			}
+		}
+		else{
+			throw new IllegalArgumentException("Zeilenzahl ist auserhalb des gültigen Bereichs!");
+		}
+	}
+	
+	public void subtractMultipleOfRow(int row, Fraction scalar, int anotherRow) throws IllegalArgumentException{
+		if(rowInRange(row) && rowInRange(anotherRow)){
+			anotherRow--;
+			Vector<Fraction> rowValues = getRow(row);
 			for(int j = 0; j < this.columns; j++){
 				this.content[anotherRow][j].modify().subtract(rowValues.get(j).multiply(scalar));
 			}
@@ -279,6 +300,184 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 		}
 	}
 	
+	/**
+	 * Checks if the matrix is in triangular form
+	 * @return true or false
+	 */
+	public boolean isTriangularForm(){
+		int lastElementIndex = -1;
+		for(int i = 0; i < this.rows; i++){
+			for(int j = 0; j < this.columns; j++){
+				if(!content[i][j].isZero()){
+					if(lastElementIndex < j){
+						lastElementIndex = j;
+						break;
+					}
+					else{
+						return false;
+					}
+				}
+				else if(j == this.columns-1){
+					lastElementIndex = j;
+				}
+			}
+		}
+		return true;
+	}
+	
+	
+	public int getPivotIndex(int row){
+		if(rowInRange(row)){
+			row--;
+			for(int i = 0; i < this.columns; i++){
+				if(!content[row][i].isZero()){
+					return i+1;
+				}
+			}
+			return -1;
+		}
+		else{
+			throw new IllegalArgumentException("Zeile ist außerhalb des gültigen Bereichs!");
+		}
+	}
+	
+	/**
+	 * Retruns a vector with all pivot element indexes in order of rows
+	 * Index is -1 if there is no pivot element in a row
+	 * @return Vector with indexes
+	 */
+	public Vector<Integer> getPivotIndexes(){
+		Vector<Integer> indexList = new Vector<Integer>();
+		for(int i = 0; i < this.rows; i++){
+			for(int j = 0; j < this.columns; j++){
+				if(!content[i][j].isZero()){
+					indexList.add(j+1);
+					break;
+				}
+				else if(j == this.columns-1){ //If theres no pivot element in this row
+					indexList.add(-1);
+				}
+			}
+		}
+		return indexList;
+	}
+	
+	/**
+	 * Checks if 2 rows are multiple of each other and returns a scalar
+	 * different from 0 if they are multiple. This scalar can be used to eliminate
+	 * one of the rows.
+	 * @param row
+	 * @param anotherRow
+	 * @return Fraction
+	 */
+	public Fraction getScalarMultiplier(int row, int anotherRow){
+		if(rowInRange(row) && rowInRange(anotherRow)){
+			Vector<Fraction> rowContent = getRow(row);
+			Vector<Fraction> anotherRowContent = getRow(anotherRow);
+			row--;
+			anotherRow--;
+			//Get the first Element of each row and find the scalar
+			Fraction rowElement = rowContent.get(0);
+			Fraction anotherRowElement = anotherRowContent.get(0);
+			Fraction scalar = anotherRowElement.divide(rowElement);
+			for(int i = 1; i < rowContent.size(); i++){
+				Fraction result = rowContent.get(i).multiply(scalar);
+				if(result.compareTo(anotherRowContent.get(i)) != 0){
+					return new Fraction(0);
+				}
+			}
+			return scalar;
+		}
+		else{
+			throw new IllegalArgumentException("Zeile ist außerhalb des gültigen Bereichs!");
+		}
+	}
+	
+	public void eliminateMultipleRows(){
+		Vector<Integer> pivotIndexes = getPivotIndexes();
+		TreeMap<Integer,Vector<Integer>> duplicateIndexes = new TreeMap<Integer,Vector<Integer>>();
+		//Add all pivot Indexes to a map with their row number
+		for(int i = 0; i < pivotIndexes.size(); i++){
+			int currentIndex = pivotIndexes.get(i);
+			if(!duplicateIndexes.containsKey(currentIndex)){
+				Vector<Integer> rowNumbers = new Vector<Integer>();
+				rowNumbers.add(i);
+				duplicateIndexes.put(currentIndex, rowNumbers);
+			}
+			else{
+				duplicateIndexes.get(currentIndex).add(i);
+			}
+		}
+		for(int key : duplicateIndexes.keySet()){
+			if(duplicateIndexes.get(key).size() > 1){
+				Vector<Integer> rows = duplicateIndexes.get(key);
+				for(int startingIndex = 0; startingIndex < rows.size(); startingIndex++){
+					if(getPivotIndex(startingIndex+1) == -1){
+						continue;
+					}
+					for(int i = startingIndex+1; i < rows.size(); i++){
+						if(getPivotIndex(i+1) == -1){
+							continue;
+						}
+						Fraction scalar = getScalarMultiplier(startingIndex+1, i+1);
+						if(!scalar.isZero()){
+							//System.out.println("Subtrahiere von Zeile " + (i+1) + "das " + scalar + "-fache von Zeile " + (startingIndex+1));
+							subtractMultipleOfRow(startingIndex+1, scalar, i+1);
+						}
+					}
+				}
+				
+			}
+		}
+	}
+	
+	/**
+	 * Sorts matrix rows so that pivot element indexes are in ascending order
+	 * Rows without an pivot element are always last
+	 */
+	public void sortRows(){
+		//TODO: Improve sorting if possible
+		Vector<Integer> indexList = getPivotIndexes();
+		int smallestElement = Integer.MAX_VALUE;
+		int smallestElementIndex = -1;
+		int sortedIndex = 0;
+		boolean sorted = false;
+		while(!sorted){
+			//Find smallest element
+			for(int i = sortedIndex; i < indexList.size(); i++){
+				if(indexList.get(i) == -1){ //Skip rows with no pivot element
+					continue;
+				}
+				else if(indexList.get(i) < smallestElement){
+					smallestElement = indexList.get(i);
+					smallestElementIndex = i;
+				}
+			}
+			//Was there no row with pivot element?
+			if(smallestElementIndex == -1){
+				break;
+			}
+			//Is the element is already at the right position?
+			else if(smallestElementIndex == sortedIndex){
+				sortedIndex++;
+				smallestElement = Integer.MAX_VALUE;
+				smallestElementIndex = -1;
+			}
+			//Swap smallest element with the current sorted index 
+			else{
+				Collections.swap(indexList, smallestElementIndex, sortedIndex);
+				//System.out.println("Tausche Zeile " + (smallestElementIndex+1) + " mit " + (sortedIndex+1));
+				swapRows(smallestElementIndex+1,sortedIndex+1);
+				sortedIndex++;
+				smallestElement = Integer.MAX_VALUE;
+				smallestElementIndex = -1;
+			}
+			if(sortedIndex == indexList.size()-1){
+				sorted = true;
+			}
+		}
+	}
+	
 	public String toString(){
 		StringBuilder output = new StringBuilder();
 		for(int i = 0; i < rows; i++){
@@ -293,6 +492,9 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 		return output.toString();
 	}
 	
+	/**
+	 * Prints matrix in console
+	 */
 	public void print(){
 		for(int i = 0; i < this.rows; i++){
 			for(int t = 0; t < this.columns; t++){
@@ -307,6 +509,20 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 	
 	public int getElementCount(){
 		return columns * rows;
+	}
+	
+	public Vector<Fraction> getRow(int row){
+		if(rowInRange(row)){
+			Vector<Fraction> rowContent = new Vector<Fraction>();
+			row--;
+			for(int i = 0; i < this.columns; i++){
+				rowContent.add(content[row][i].clone());
+			}
+			return rowContent;
+		}
+		else{
+			throw new IllegalArgumentException("Zeile ist nicht im gültigen Bereich");
+		}
 	}
 	
 	public Vector<Fraction> getContentAsVector(){
