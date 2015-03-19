@@ -1,6 +1,9 @@
 package math;
 
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -104,6 +107,22 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 	
 	public Fraction[][] getContent(){
 		return this.content;
+	}
+	
+	/**
+	 * Returns the fraction at the given row and column index
+	 * @param row
+	 * @param column
+	 * @return Fraction
+	 * @throws IllegalArgumentException If row or column are not valid
+	 */
+	public Fraction getElementAt(int row, int column) throws IllegalArgumentException{
+		if(rowInRange(row) && columnInRange(column)){
+			return this.content[row-1][column-1].clone();
+		}
+		else{
+			throw new IllegalArgumentException("Zeile oder Spalte außerhalb des Gültigen bereichs!");
+		}
 	}
 	
 	/**
@@ -287,12 +306,29 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 	}
 	
 	/**
-	 * Checks if row number is in range of number of rows
+	 * Checks if a given row index is in range of the matrix rows
+	 * The index must be greater than 0 and smaller or equal to the row count
 	 * @param row
-	 * @return
+	 * @return true or false
 	 */
 	private boolean rowInRange(int row){
-		if(!(row < 1) && row <= this.rows){
+		if(row > 0  && row <= this.rows){
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+	
+	
+	/**
+	 * Checks if a given column index is in range of the matrix columns
+	 * The index must be greater than 0 and smaller or equal to the column count
+	 * @param column
+	 * @return true or false
+	 */
+	private boolean columnInRange(int column){
+		if(column > 0 && column <= this.columns){
 			return true;
 		}
 		else{
@@ -325,6 +361,20 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 		return true;
 	}
 	
+	/**
+	 * Returns the first element in a row that is different from zero
+	 * If theres no such element a zero fraction will be returned
+	 * @param row Row of the pivot element
+	 * @return
+	 */
+	public Fraction getPivotElement(int row) throws IllegalArgumentException{
+		int pivotIndex = getPivotIndex(row);
+		if(pivotIndex == -1){
+			return new Fraction(0);
+		}
+		Fraction pivotElement = getElementAt(row,pivotIndex);
+		return pivotElement;
+	}
 	
 	public int getPivotIndex(int row){
 		if(rowInRange(row)){
@@ -363,26 +413,85 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 	}
 	
 	/**
+	 * Creates a map where each avaiable pivot index is used as a key 
+	 * @return
+	 */
+	public Map<Integer,Vector<Integer>> getPivotIndexesAsMap(){
+		Vector<Integer> pivotIndexes = getPivotIndexes();
+		Map<Integer,Vector<Integer>> duplicateIndexes = new TreeMap<Integer,Vector<Integer>>();
+		//Add all pivot Indexes to a map with their row number
+		for(int i = 0; i < pivotIndexes.size(); i++){
+			int currentIndex = pivotIndexes.get(i);
+			if(!duplicateIndexes.containsKey(currentIndex)){
+				Vector<Integer> rowNumbers = new Vector<Integer>();
+				rowNumbers.add(i+1);
+				duplicateIndexes.put(currentIndex, rowNumbers);
+			}
+			else{
+				duplicateIndexes.get(currentIndex).add(i+1);
+			}
+		}
+		return duplicateIndexes;
+	}
+	
+	/**
+	 * Overloaded method wich accepts a comparator for the map
+	 * @param comparator
+	 * @return
+	 */
+	public Map<Integer,Vector<Integer>> getPivotIndexesAsMap(Comparator<Integer> comparator){
+		Vector<Integer> pivotIndexes = getPivotIndexes();
+		Map<Integer,Vector<Integer>> duplicateIndexes = new TreeMap<Integer,Vector<Integer>>(comparator);
+		//Add all pivot Indexes to a map with their row number
+		for(int i = 0; i < pivotIndexes.size(); i++){
+			int currentIndex = pivotIndexes.get(i);
+			if(!duplicateIndexes.containsKey(currentIndex)){
+				Vector<Integer> rowNumbers = new Vector<Integer>();
+				rowNumbers.add(i+1);
+				duplicateIndexes.put(currentIndex, rowNumbers);
+			}
+			else{
+				duplicateIndexes.get(currentIndex).add(i+1);
+			}
+		}
+		return duplicateIndexes;
+	}
+	
+	/**
 	 * Checks if 2 rows are multiple of each other and returns a scalar
-	 * different from 0 if they are multiple. This scalar can be used to eliminate
-	 * one of the rows.
+	 * different from 0 if they are multiple. If you multiply this scalar with
+	 * the row it will be the same as anotherRow.
 	 * @param row
 	 * @param anotherRow
 	 * @return Fraction
 	 */
 	public Fraction getScalarMultiplier(int row, int anotherRow){
 		if(rowInRange(row) && rowInRange(anotherRow)){
+			int pivotIndexRow = getPivotIndex(row);
+			int pivotIndexAnotherRow = getPivotIndex(anotherRow);
+			//If the pivot indexes arent the same theres no multiplier
+			if(pivotIndexRow != pivotIndexAnotherRow || (pivotIndexRow == -1 || pivotIndexAnotherRow == -1)){
+				return new Fraction(0);
+			}
+			//Determine the multiplier for the first pivot elements to be equal to the second
+			Fraction rowElement = getPivotElement(row);
+			Fraction anotherRowElement = getPivotElement(anotherRow);
+			Fraction scalar = anotherRowElement.divide(rowElement);
+			
 			Vector<Fraction> rowContent = getRow(row);
 			Vector<Fraction> anotherRowContent = getRow(anotherRow);
-			row--;
-			anotherRow--;
-			//Get the first Element of each row and find the scalar
-			Fraction rowElement = rowContent.get(0);
-			Fraction anotherRowElement = anotherRowContent.get(0);
-			Fraction scalar = anotherRowElement.divide(rowElement);
-			for(int i = 1; i < rowContent.size(); i++){
+			
+			/*
+			 * Multiply each element in row with the scalar and check if it's
+			 * the same as in anotherRow.
+			 */
+			for(int i = pivotIndexRow; i < rowContent.size(); i++){
+				Fraction target = anotherRowContent.get(i);
+				if(target.isZero()){
+					return new Fraction(0);
+				}
 				Fraction result = rowContent.get(i).multiply(scalar);
-				if(result.compareTo(anotherRowContent.get(i)) != 0){
+				if(result.compareTo(target) != 0){
 					return new Fraction(0);
 				}
 			}
@@ -394,35 +503,22 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 	}
 	
 	public void eliminateMultipleRows(){
-		Vector<Integer> pivotIndexes = getPivotIndexes();
-		TreeMap<Integer,Vector<Integer>> duplicateIndexes = new TreeMap<Integer,Vector<Integer>>();
-		//Add all pivot Indexes to a map with their row number
-		for(int i = 0; i < pivotIndexes.size(); i++){
-			int currentIndex = pivotIndexes.get(i);
-			if(!duplicateIndexes.containsKey(currentIndex)){
-				Vector<Integer> rowNumbers = new Vector<Integer>();
-				rowNumbers.add(i);
-				duplicateIndexes.put(currentIndex, rowNumbers);
-			}
-			else{
-				duplicateIndexes.get(currentIndex).add(i);
-			}
-		}
+		Map<Integer,Vector<Integer>> duplicateIndexes = getPivotIndexesAsMap();
 		for(int key : duplicateIndexes.keySet()){
+			if(key == -1){ //Cant eliminate rows with no pivot element
+				continue;
+			}
 			if(duplicateIndexes.get(key).size() > 1){
 				Vector<Integer> rows = duplicateIndexes.get(key);
-				for(int startingIndex = 0; startingIndex < rows.size(); startingIndex++){
-					if(getPivotIndex(startingIndex+1) == -1){
-						continue;
-					}
-					for(int i = startingIndex+1; i < rows.size(); i++){
-						if(getPivotIndex(i+1) == -1){
-							continue;
-						}
-						Fraction scalar = getScalarMultiplier(startingIndex+1, i+1);
+				//Compare each row of the current pivot index with the other rows of this index
+				for(int fistElement = 0; fistElement < rows.size(); fistElement++){
+					int row = rows.elementAt(fistElement);
+					for(int nextElement = fistElement+1; nextElement < rows.size(); nextElement++){
+						int compareToRow = rows.elementAt(nextElement);
+						Fraction scalar = getScalarMultiplier(row, compareToRow);
 						if(!scalar.isZero()){
-							//System.out.println("Subtrahiere von Zeile " + (i+1) + "das " + scalar + "-fache von Zeile " + (startingIndex+1));
-							subtractMultipleOfRow(startingIndex+1, scalar, i+1);
+							System.out.println("Subtrahiere von Zeile " + compareToRow + " das " + scalar + "-fache von Zeile " + row);
+							subtractMultipleOfRow(row, scalar, compareToRow);
 						}
 					}
 				}
@@ -432,8 +528,8 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 	}
 	
 	/**
-	 * Sorts matrix rows so that pivot element indexes are in ascending order
-	 * Rows without an pivot element are always last
+	 * Sorts matrix rows so that pivot element indexes are in ascending order.
+	 * Zero rows are ignored by this method and will be always last.
 	 */
 	public void sortRows(){
 		//TODO: Improve sorting if possible
@@ -476,6 +572,56 @@ public class Matrix implements Comparable<Matrix>, Cloneable{
 				sorted = true;
 			}
 		}
+	}
+	
+	/**
+	 * Converts the matrix to triangular form. The method starts at the row with the highest
+	 * pivot index and eliminates all other pivot elements with the same pivot index.
+	 * This continues until each pivot index is unique. The matrix is sorted afterwards
+	 * with the sortRows method.
+	 */
+	public void toTriangularForm(){
+		eliminateMultipleRows();
+		TreeMap<Integer,Vector<Integer>> duplicateIndexes = (TreeMap<Integer,Vector<Integer>>)getPivotIndexesAsMap();
+		duplicateIndexes.remove(-1); //Rows with no pivot element
+		boolean isTriangular = false;
+		int currentIndex = 0;
+		try{
+			currentIndex = duplicateIndexes.firstKey();
+		}
+		catch(NoSuchElementException e){
+			return;
+		}
+		while(!isTriangular){
+			if(duplicateIndexes.get(currentIndex).size() > 1){
+				Vector<Integer> rowVector = duplicateIndexes.get(currentIndex);
+				int eliminatorRowIndex = rowVector.get(0);
+				Fraction eliminatorElement = getPivotElement(eliminatorRowIndex);
+				for(int i = 1; i < rowVector.size(); i++){
+					int eliminatedRowIndex = rowVector.get(i);
+					Fraction eliminatedElement = getPivotElement(eliminatedRowIndex);
+					Fraction scalar = eliminatedElement.divide(eliminatorElement);
+					//System.out.println("Subtrahiere von Zeile " + eliminatedRowIndex + " das " + scalar + "-fache von Zeile" + eliminatorRowIndex);
+					subtractMultipleOfRow(eliminatorRowIndex, scalar, eliminatedRowIndex);
+					int newPivotIndex = getPivotIndex(eliminatedRowIndex);
+					if(duplicateIndexes.containsKey(newPivotIndex)){
+						duplicateIndexes.get(newPivotIndex).add(eliminatedRowIndex);
+					}
+					else{
+						Vector<Integer> rows = new Vector<Integer>();
+						rows.add(eliminatedRowIndex);
+						duplicateIndexes.put(newPivotIndex, rows);
+					}
+				}
+			}
+			if(duplicateIndexes.higherKey(currentIndex) == null){
+				isTriangular = true;
+			}
+			else{
+				currentIndex = duplicateIndexes.higherKey(currentIndex);
+			}
+		}
+		sortRows();
 	}
 	
 	public String toString(){
